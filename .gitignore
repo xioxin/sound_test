@@ -1,0 +1,13 @@
+.DS_Store
+.dart_tool/
+
+.packages
+.pub/
+
+build/
+.idea
+.vs
+
+lab_sound/assets
+lab_sound/third_party/libnyquist/test_data
+
