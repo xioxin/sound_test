@@ -38,6 +38,8 @@ class _MyAppState extends State<MyApp> {
   double _tempo = 1.0;
   double _pitch = 1.0;
 
+  double _rate = 1.0;
+
   @override
   void initState() {
     super.initState();
@@ -287,6 +289,7 @@ class _MyAppState extends State<MyApp> {
                 if(musicNode != null)StreamBuilder<Duration>(
                   stream: musicNode.onPosition,
                   builder: (context, snapshot) {
+                    if(snapshot.data == null) return Container();
                     return LinearProgressIndicator(value: snapshot.data.inMilliseconds / musicNode.duration.inMilliseconds);
                   }
                 ),
@@ -299,6 +302,17 @@ class _MyAppState extends State<MyApp> {
                       setState(() {
                         musicNode.tempo = value;
                         _tempo = value;
+                      });
+                    }),
+                Text('rate: ${_rate.toStringAsFixed(2)}' ),
+                Slider(
+                    value: _rate,
+                    min: 0.3,
+                    max: 2.0,
+                    onChanged: (value) {
+                      setState(() {
+                        musicNode.rate = value;
+                        _rate = value;
                       });
                     }),
                 Text('pitch: ${_pitch.toStringAsFixed(2)}'),

@@ -92,7 +92,7 @@ uint64_t currentSampleFrame(AudioContext* context){
 
 extern "C" DART_CALL
 int decodeAudioData(const char *file) {
-    auto bus = MakeBusFromFile(file, true);
+    auto bus = MakeBusFromFile(file, false);
     bufferCount++;
     audioBuffers.insert(std::pair<int,std::shared_ptr<AudioBus>>(bufferCount,bus));
     return bufferCount;
@@ -145,8 +145,8 @@ int createAudioSampleNode(AudioContext* context,int busIndex) {
 }
 
 extern "C" DART_CALL
-int createSoundTouchNode(AudioContext* context,int busIndex) {
-    auto node = std::make_shared<SoundTouchNode>();
+int createSoundTouchNode(AudioContext* context,int busIndex,double maxRate) {
+    auto node = std::make_shared<SoundTouchNode>(maxRate);
     ContextRenderLock r(context,"sample");
     node->setBus(r,audioBuffers.find(busIndex)->second);
     return keepNode(node);
@@ -304,14 +304,18 @@ int SoundTouchNode_isPlayingOrScheduled(int index) {
     return static_cast<SoundTouchNode*>(audioNodes.find(index)->second.get())->isPlayingOrScheduled();
 }
 
+extern "C" DART_CALL
+void SoundTouchNode_setRate(int index,double value) {
+    static_cast<SoundTouchNode*>(audioNodes.find(index)->second.get())->setRate(value);
+}
 
 extern "C" DART_CALL
-void SoundTouchNode_setPitch(int index, double value) {
+void SoundTouchNode_setPitch(int index,double value) {
     static_cast<SoundTouchNode*>(audioNodes.find(index)->second.get())->setPitch(value);
 }
 
 extern "C" DART_CALL
-void SoundTouchNode_setTempo(int index, double value) {
+void SoundTouchNode_setTempo(int index,double value) {
     static_cast<SoundTouchNode*>(audioNodes.find(index)->second.get())->setTempo(value);
 }
 

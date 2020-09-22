@@ -43,10 +43,8 @@ class AudioContext {
     lab.disconnect(this.pointer, dst.nodeId, src.nodeId);
   }
 
-  AudioBus decodeAudioFile(String path) {
-    final bus = AudioBus();
-    bus.resourceId = lab.decodeAudioData(Utf8.toUtf8(path));
-    return bus;
+  AudioBus decodeAudioFile(String path, {audoDispose = true}) {
+    return AudioBus(path, audoDispose: audoDispose);
   }
 
   AudioSampleNode createBufferSource(AudioBus audio) {
@@ -79,6 +77,25 @@ class AudioContext {
 
 class AudioBus {
   int resourceId;
+  Set<AudioNode> usedNode = Set();
+  String filePath;
+  bool audoDispose;
+
+  AudioBus(this.filePath , {this.audoDispose = false}) {
+    resourceId = lab.decodeAudioData(Utf8.toUtf8(filePath));
+  }
+  lock(AudioNode node) {
+    print("$this 节点占用 $node");
+    usedNode.add(node);
+  }
+  unlock(AudioNode node) {
+    usedNode.remove(node);
+    print("$this 节点解锁 $node, 剩余: $usedNode, audoDispose: ${audoDispose}");
+    if(usedNode.length == 0 && audoDispose) {
+      print("$this 销毁！！！");
+      this.dispose();
+    }
+  }
   dispose() {
     lab.releaseBuffer(this.resourceId);
   }
@@ -175,6 +192,7 @@ abstract class AudioPlayerNode extends AudioNode {
 
   double pitch;
   double tempo;
+  double rate;
 
   start({double when, double offset, double duration});
   stop({double when});
@@ -183,19 +201,16 @@ abstract class AudioPlayerNode extends AudioNode {
 
 class AudioSampleNode extends AudioPlayerNode {
   AudioBus resource;
-  AudioSampleNode(AudioContext ctx, AudioBus audio, {bool disposable = false}) {
+  AudioSampleNode(AudioContext ctx, AudioBus audio) {
     this.ctx = ctx;
     this.resource = audio;
     this.nodeId = lab.createAudioSampleNode(ctx.pointer, audio.resourceId);
+    this.resource.lock(this);
     playbackRate = AudioParam(this.ctx, lab.sampledAudioNodePlaybackRate(this.nodeId));
     gain = AudioParam(this.ctx, lab.sampledAudioNodeGain(this.nodeId));
     detune = AudioParam(this.ctx, lab.sampledAudioNodeDetune(this.nodeId));
-    if (disposable) {
-      onEnded.listen((event) {
-        this.dispose();
-      });
-    }
   }
+
   AudioParam playbackRate;
   AudioParam gain;
   AudioParam detune;
@@ -221,7 +236,6 @@ class AudioSampleNode extends AudioPlayerNode {
   }
 
   bool get hasFinished => lab.sampledAudioNodeHasFinished(this.nodeId) != 0;
-
   double get virtualReadIndex => lab.sampledAudioNodeVirtualReadIndex(this.nodeId);
   Duration get position => Duration(milliseconds: (this.virtualReadIndex / this.resource.sampleRate * 1000).toInt());
   Duration get duration => this.resource.duration;
@@ -244,31 +258,28 @@ class AudioSampleNode extends AudioPlayerNode {
   }
   @override
   dispose() {
+    this.resource.unlock(this);
     _onPositionController?.close();
     _onEndedController?.close();
     _checkTimer?.cancel();
     return super.dispose();
   }
 
-  onEndedDispose() {
-    if(hasFinished) {
-      this.dispose();
-    } else {
-      this.onEnded.listen((event) {
-        this.dispose();
-      });
-    }
+  toString() {
+    return "AudioSampleNode<${nodeId}>";
   }
+
 }
 
 class SoundTouchNode extends AudioPlayerNode {
   AudioBus resource;
-  SoundTouchNode(AudioContext ctx, AudioBus audio, {bool disposable = false}) {
+  SoundTouchNode(AudioContext ctx, AudioBus audio, {bool disposable = false, double maxRate = 3.0 }) {
     this.ctx = ctx;
     this.resource = audio;
-    this.nodeId = lab.createSoundTouchNode(ctx.pointer, audio.resourceId);
+    this.nodeId = lab.createSoundTouchNode(ctx.pointer, audio.resourceId, maxRate);
     this.pitch = 1.0;
     this.tempo = 1.0;
+    this.rate = 1.0;
     playbackRate = AudioParam(this.ctx, lab.soundTouchNodePlaybackRate(this.nodeId));
     gain = AudioParam(this.ctx, lab.soundTouchNodeGain(this.nodeId));
     if (disposable) {
@@ -283,9 +294,12 @@ class SoundTouchNode extends AudioPlayerNode {
 
   double _pitch = 1.0;
   double _tempo = 1.0;
+  double _rate = 1.0;
 
   double get pitch => _pitch;
   double get tempo => _tempo;
+  double get rate => _rate;
+
 
   set pitch (double v) {
     _pitch = v;
@@ -295,6 +309,11 @@ class SoundTouchNode extends AudioPlayerNode {
     _tempo = v;
     lab.soundTouchNodeSetTempo(this.nodeId, v);
   }
+  set rate (double v) {
+    _rate = v;
+    lab.soundTouchNodeSetRate(this.nodeId, v);
+  }
+
 
   StreamController _onEndedController = StreamController.broadcast();
   Stream get onEnded => _onEndedController.stream;

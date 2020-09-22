@@ -75,9 +75,9 @@ labSoundLib
     "createAudioSampleNode")
     .asFunction();
 
-final int Function(Pointer context, int bus) createSoundTouchNode =
+final int Function(Pointer context, int bus, double maxRate) createSoundTouchNode =
 labSoundLib
-    .lookup<NativeFunction<Int32 Function(Pointer context, Int32 bus)>>(
+    .lookup<NativeFunction<Int32 Function(Pointer context, Int32 bus, Double maxRate)>>(
     "createSoundTouchNode")
     .asFunction();
 
@@ -244,13 +244,21 @@ final int Function(int soundTouchNode) soundTouchNodeIsPlayingOrScheduled = labS
     "SoundTouchNode_isPlayingOrScheduled")
     .asFunction();
 
-final int Function(int soundTouchNode, double value) soundTouchNodeSetPitch = labSoundLib
-    .lookup<NativeFunction<Int32 Function(Int32, Double)>>(
+
+
+
+final void Function(int soundTouchNode, double value) soundTouchNodeSetRate = labSoundLib
+    .lookup<NativeFunction<Void Function(Int32, Double)>>(
+    "SoundTouchNode_setRate")
+    .asFunction();
+
+final void Function(int soundTouchNode, double value) soundTouchNodeSetPitch = labSoundLib
+    .lookup<NativeFunction<Void Function(Int32, Double)>>(
     "SoundTouchNode_setPitch")
     .asFunction();
 
-final int Function(int soundTouchNode, double value) soundTouchNodeSetTempo = labSoundLib
-    .lookup<NativeFunction<Int32 Function(Int32, Double)>>(
+final void Function(int soundTouchNode, double value) soundTouchNodeSetTempo = labSoundLib
+    .lookup<NativeFunction<Void Function(Int32, Double)>>(
     "SoundTouchNode_setTempo")
     .asFunction();
 

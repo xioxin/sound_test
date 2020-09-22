@@ -17,6 +17,8 @@
 #include <algorithm>
 #include <internal/VectorMath.h>
 
+#include "libnyquist/Decoders.h"
+
 using namespace lab;
 
 const double DefaultGrainDuration = 0.020;  // 20ms
@@ -26,7 +28,7 @@ const double DefaultGrainDuration = 0.020;  // 20ms
 // to minimize linear interpolation aliasing.
 const double MaxRate = 1024;
 
-SoundTouchNode::SoundTouchNode()
+SoundTouchNode::SoundTouchNode(double maxTempo)
         : AudioScheduledSourceNode()
         , m_sourceBus(std::make_shared<AudioSetting>("sourceBus", "SBUS", AudioSetting::Type::Bus))
         , m_isLooping(std::make_shared<AudioSetting>("loop", "LOOP", AudioSetting::Type::Bool))
@@ -55,14 +57,20 @@ SoundTouchNode::SoundTouchNode()
     addOutput(std::unique_ptr<AudioNodeOutput>(new AudioNodeOutput(this, 1)));
 
     m_soundTouch = std::make_shared<soundtouch::SoundTouch>();
-//    m_soundTouch->setPitch(2.0);
-    // m_soundTouch->setTempo(1.2);
+
+    setRate(1.5);
+//    setPitch(-6);
+//    setTempo(1.2);
+
+    bufferSize = ceil(128*2*maxTempo);
+    soundTouchBuffer = new float[bufferSize];
 
     initialize();
 }
 
 SoundTouchNode::~SoundTouchNode()
 {
+    delete soundTouchBuffer;
     uninitialize();
 }
 
@@ -129,12 +137,11 @@ void SoundTouchNode::process(ContextRenderLock & r, size_t framesToProcess)
         m_startRequested = false;
     }
 
-    size_t realFrameToProcess = framesToProcess/m_soundTouch->getInputOutputSampleRatio();
+    size_t realFrameToProcess = ceil(framesToProcess/m_soundTouch->getInputOutputSampleRatio());
     size_t quantumFrameOffset;
     size_t bufferFramesToProcess;
 
     updateSchedulingInfo(r, realFrameToProcess, outputBus, quantumFrameOffset, bufferFramesToProcess);
-//    updateSchedulingInfo(r, framesToProcess, outputBus, quantumFrameOffset, bufferFramesToProcess);
 
     if (!bufferFramesToProcess)
     {
@@ -154,25 +161,12 @@ void SoundTouchNode::process(ContextRenderLock & r, size_t framesToProcess)
 //    outputBus->copyWithGainFrom(*outputBus, &m_lastGain, totalGain);
 //    outputBus->clearSilentFlag();
 
-    // 将音频提交给SoundTouch处理进程
-    m_soundTouch->putSamples(outputBus->channel(0)->data(), bufferFramesToProcess);
-
-
-    int nSamples = framesToProcess;
-
-    soundtouch::SAMPLETYPE sampleBuffer[nSamples];
-    int received = 0,got = 0;
-    do{
-        got = m_soundTouch->receiveSamples((sampleBuffer+received), nSamples-received);
-        received += got;
-    } while (got != 0);
-
-    const float scale[]{1};
-    outputBus->zero();
-    if(received != 0)
-        VectorMath::vsma(sampleBuffer, 1, scale, outputBus->channel(0)->mutableData(), 1, nSamples);
+    mixChannel(outputBus,bufferFramesToProcess);
+    soundTouchRender(outputBus);
+//    outputBus->channel(1)->zero();
 
 }
+
 
 // Returns true if we're finished.
 bool SoundTouchNode::renderSilenceAndFinishIfNotLooping(ContextRenderLock & r, AudioBus * bus, size_t index, size_t framesToProcess)
@@ -389,7 +383,7 @@ bool SoundTouchNode::setBus(ContextRenderLock & r, std::shared_ptr<AudioBus> buf
     output(0)->setNumberOfChannels(r, buffer ? buffer->numberOfChannels() : 0);
     m_virtualReadIndex = 0;
     m_soundTouch->setSampleRate(buffer->sampleRate());
-    m_soundTouch->setChannels(1);
+    m_soundTouch->setChannels(buffer->numberOfChannels());
     return true;
 }
 
@@ -501,10 +495,57 @@ void SoundTouchNode::setLoopEnd(double loopEnd)
     m_loopEnd->setFloat(static_cast<float>(loopEnd));  // seconds
 }
 
+void SoundTouchNode::setRate(double value) {
+//    m_soundTouch->setRate(value);
+    playbackRate()->setValue(value);
+    m_soundTouch->setPitch(1/value);
+}
+
 void SoundTouchNode::setPitch(double value) {
-    m_soundTouch->setPitch(value);
+    m_soundTouch->setPitchSemiTones(value);
 }
 
 void SoundTouchNode::setTempo(double value) {
     m_soundTouch->setTempo(value);
+}
+
+template <typename T>
+void interleaveStereo(T const * c1, T const * c2, T * dst, size_t count)
+{
+    auto dst_end = dst + count*2;
+    while (dst != dst_end)
+    {
+        dst[0] = *c1;
+        dst[1] = *c2;
+        c1++;
+        c2++;
+        dst += 2;
+    }
+}
+
+void SoundTouchNode::mixChannel(AudioBus* outputBus,int samples) {
+    if(outputBus->numberOfChannels()==2){
+        interleaveStereo(outputBus->channel(0)->data(),outputBus->channel(1)->data(),soundTouchBuffer,samples);
+    }else{
+        memcpy(outputBus->channel(0)->mutableData(),soundTouchBuffer,samples*sizeof(float));
+    }
+    // 将音频提交给SoundTouch处理进程
+    m_soundTouch->putSamples(soundTouchBuffer, samples);
+}
+
+void SoundTouchNode::soundTouchRender(AudioBus *outputBus) {
+    uint nSamples = 128;
+    int received = 0,got = 0;
+
+    memset(soundTouchBuffer,0,bufferSize);
+    do{
+        got = m_soundTouch->receiveSamples((soundTouchBuffer+received), nSamples-received);
+        received += got;
+    } while (got != 0);
+
+    if(outputBus->numberOfChannels() == 2){
+        nqr::DeinterleaveStereo(outputBus->channel(0)->mutableData(),outputBus->channel(1)->mutableData(),soundTouchBuffer,received*2);
+    }else{
+        memcpy(outputBus->channel(0)->mutableData(),soundTouchBuffer,nSamples*sizeof(float));
+    }
 }

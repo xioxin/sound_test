@@ -15,6 +15,7 @@
 #include "LabSound/core/PannerNode.h"
 
 #include <memory>
+#include <internal/VectorMath.h>
 
 namespace lab
 {
@@ -30,7 +31,7 @@ namespace lab
     class SoundTouchNode final : public AudioScheduledSourceNode
     {
     public:
-        SoundTouchNode();
+        SoundTouchNode(double maxTempo);
         virtual ~SoundTouchNode();
 
         // AudioNode
@@ -50,6 +51,7 @@ namespace lab
 
         float duration() const;
 
+        void setRate(double value);
         void setPitch(double value);
         void setTempo(double value);
 
@@ -80,6 +82,9 @@ namespace lab
 
     private:
 
+        uint bufferSize;
+        float* soundTouchBuffer;
+
         // Returns true on success.
         bool renderFromBuffer(ContextRenderLock &, AudioBus *, size_t destinationFrameOffset, size_t numberOfFrames);
 
@@ -105,6 +110,9 @@ namespace lab
         double m_requestWhen{0};
         double m_requestGrainOffset{0};
         double m_requestGrainDuration{0};
+
+        void soundTouchRender(AudioBus* outputBus);
+        void mixChannel(AudioBus* outputBus,int samples);
 
         std::shared_ptr<AudioSetting> m_loopStart;
         std::shared_ptr<AudioSetting> m_loopEnd;
