@@ -80,9 +80,10 @@ class _MyAppState extends State<MyApp> {
     musicNode = ctx.createSoundTouch(musicBus);
 
 //    musicNode.tempo = 2.0;
-    
-    print("musicBus: length:${musicBus.length}, numberOfChannels: ${musicBus.numberOfChannels}, sampleRate:${musicBus.sampleRate}, duration: ${musicBus.duration}");
-    
+
+    print(
+        "musicBus: length:${musicBus.length}, numberOfChannels: ${musicBus.numberOfChannels}, sampleRate:${musicBus.sampleRate}, duration: ${musicBus.duration}");
+
     final startTime = ctx.currentTime + 0.5;
 //    musicNode.playbackRate.setValueAtTime(3, startTime + 2.0);
     gainNode = ctx.createGainNode();
@@ -93,7 +94,6 @@ class _MyAppState extends State<MyApp> {
     gainNode.gain.setValue(0.1);
     gainNode.gain.linearRampToValueAtTime(1.0, 5.0);
 
-
 //    print(' musicNode.playbackRate: ${musicNode.playbackRate.value}');
 
 //    musicNode.playbackRate.setValue(1.5);
@@ -101,9 +101,6 @@ class _MyAppState extends State<MyApp> {
 
 //    musicNode.gain.setValue(0.1);
 //    musicNode.gain.linearRampToValueAtTime(1.0, startTime + 5);
-
-
-
 
 //    musicNode.playbackRate.setValueAtTime(0.5, startTime + 5.0);
 //    musicNode.gain.setValueAtTime(0.5, startTime + 10.0);
@@ -146,7 +143,6 @@ class _MyAppState extends State<MyApp> {
     musicNode.stop();
   }
 
-
   void testPlay2() async {
     print('testPlay2');
     final musicPath = await loadAsset('mono-music-clip.wav');
@@ -165,9 +161,11 @@ class _MyAppState extends State<MyApp> {
     print(saveFile.path);
     print(saveFile.existsSync());
 
-
-
-    final ctx = AudioContext(offline: true, channels: 2, initSampleRate: 48000.0, timeMills: 60.0 * 1000);
+    final ctx = AudioContext(
+        offline: true,
+        channels: 2,
+        initSampleRate: 48000.0,
+        timeMills: 60.0 * 1000);
 //    print(ctx.sampleRate);
     final recorder = ctx.createRecorderNode();
     final musicBus = ctx.decodeAudioFile(musicPath);
@@ -182,7 +180,6 @@ class _MyAppState extends State<MyApp> {
 
     gainNode.gain.setValue(0.1);
     gainNode.gain.linearRampToValueAtTime(1.0, 5.0);
-
 
 //    print(' musicNode.playbackRate: ${musicNode.playbackRate.value}');
 
@@ -224,9 +221,6 @@ class _MyAppState extends State<MyApp> {
 //      }
 //      lastTime = ctx.currentTime;
 //    });
-
-
-
   }
 
   void offlineTest2() async {
@@ -235,10 +229,14 @@ class _MyAppState extends State<MyApp> {
     final saveFile = File(tempDir.path + '/' + 'temp.wav');
     print(saveFile.path);
     print("file exists1: ${saveFile.existsSync()}");
-    if(saveFile.existsSync()){
+    if (saveFile.existsSync()) {
       saveFile.deleteSync();
     }
-    final ctx = AudioContext(offline: true, channels: 2, initSampleRate: 48000.0, timeMills: 30.0*1000.0);
+    final ctx = AudioContext(
+        offline: true,
+        channels: 2,
+        initSampleRate: 48000.0,
+        timeMills: 30.0 * 1000.0);
     final recorder = ctx.createRecorderNode();
     final musicBus = ctx.decodeAudioFile(musicPath);
     final musicNode = ctx.createBufferSource(musicBus);
@@ -258,7 +256,7 @@ class _MyAppState extends State<MyApp> {
 
   void memoryTest() async {
     final ctx = AudioContext(channels: 2, initSampleRate: 48000.0);
-    for(int i = 0; i < 100; i++) {
+    for (int i = 0; i < 100; i++) {
       print('noDis: $i');
       ctx.decodeAudioFile(musicPath);
     }
@@ -266,13 +264,12 @@ class _MyAppState extends State<MyApp> {
 
   void memoryTest2() async {
     final ctx = AudioContext(channels: 2, initSampleRate: 48000.0);
-    for(int i = 0; i < 100; i++) {
+    for (int i = 0; i < 100; i++) {
       print('dispose: $i');
       final bus = ctx.decodeAudioFile(musicPath);
       bus.dispose();
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -281,115 +278,112 @@ class _MyAppState extends State<MyApp> {
         appBar: AppBar(
           title: const Text('Plugin example app'),
         ),
-        body: Builder(
-          builder: (context) {
-            return Center(
-                child: Column(
-              children: [
-                if(musicNode != null)StreamBuilder<Duration>(
-                  stream: musicNode.onPosition,
-                  builder: (context, snapshot) {
-                    if(snapshot.data == null) return Container();
-                    return LinearProgressIndicator(value: snapshot.data.inMilliseconds / musicNode.duration.inMilliseconds);
-                  }
-                ),
-                Text('tempo: ${_tempo.toStringAsFixed(2)}' ),
-                Slider(
-                    value: _tempo,
-                    min: 0.3,
-                    max: 2.0,
-                    onChanged: (value) {
-                      setState(() {
-                        musicNode.tempo = value;
-                        _tempo = value;
-                      });
+        body: Builder(builder: (context) {
+          return Center(
+              child: Column(
+            children: [
+              if (musicNode != null)
+                StreamBuilder<Duration>(
+                    stream: musicNode.onPosition,
+                    builder: (context, snapshot) {
+                      if (snapshot.data == null) return Container();
+                      return LinearProgressIndicator(
+                          value: snapshot.data.inMilliseconds /
+                              musicNode.duration.inMilliseconds);
                     }),
-                Text('rate: ${_rate.toStringAsFixed(2)}' ),
-                Slider(
-                    value: _rate,
-                    min: 0.3,
-                    max: 2.0,
-                    onChanged: (value) {
-                      setState(() {
-                        musicNode.rate = value;
-                        _rate = value;
-                      });
-                    }),
-                Text('pitch: ${_pitch.toStringAsFixed(2)}'),
-                Slider(
-                    value: _pitch,
-                    min: 0.3,
-                    max: 2.0,
-                    onChanged: (value) {
-                      setState(() {
-                        musicNode.pitch = value;
-                        _pitch = value;
-                      });
-                    }),
-                RaisedButton(
-                  child: Text("Play1"),
-                  onPressed: () async {
-                    play1();
-                  },
-                ),
-                RaisedButton(
-                  child: Text("stop"),
-                  onPressed: () async {
-                    stop();
-                  },
-                ),
-                RaisedButton(
-                  child: Text("delNode"),
-                  onPressed: () async {
-                    musicNode.dispose();
-                  },
-                ),
-                RaisedButton(
-                  child: Text("Play2"),
-                  onPressed: () async {
-                    testPlay2();
-                  },
-                ),
-                RaisedButton(
-                  child: Text("offlineTest"),
-                  onPressed: () async {
-                    offlineTest();
-                  },
-                ),
-                RaisedButton(
-                  child: Text("offlineTest2"),
-                  onPressed: () async {
-                    offlineTest2();
-                  },
-                ),
-                RaisedButton(
-                  child: Text("memoryTest"),
-                  onPressed: () async {
-                    memoryTest();
-                  },
-                ),
-                RaisedButton(
-                  child: Text("memoryTest2"),
-                  onPressed: () async {
-                    memoryTest2();
-                  },
-                ),
-
-
-                RaisedButton(
-                  child: Text("测试播放器"),
-                  onPressed: () async {
-                    Navigator.push(
-                      context,
-                      new MaterialPageRoute(builder: (context) => Player()),
-                    );
-                  },
-                ),
-
-              ],
-            ));
-          }
-        ),
+              Text('tempo: ${_tempo.toStringAsFixed(2)}'),
+              Slider(
+                  value: _tempo,
+                  min: 0.3,
+                  max: 2.0,
+                  onChanged: (value) {
+                    setState(() {
+                      musicNode.tempo = value;
+                      _tempo = value;
+                    });
+                  }),
+              Text('rate: ${_rate.toStringAsFixed(2)}'),
+              Slider(
+                  value: _rate,
+                  min: 0.3,
+                  max: 2.0,
+                  onChanged: (value) {
+                    setState(() {
+                      musicNode.rate = value;
+                      _rate = value;
+                    });
+                  }),
+              Text('pitch: ${_pitch.toStringAsFixed(2)}'),
+              Slider(
+                  value: _pitch,
+                  min: 0.3,
+                  max: 2.0,
+                  onChanged: (value) {
+                    setState(() {
+                      musicNode.pitch = value;
+                      _pitch = value;
+                    });
+                  }),
+              RaisedButton(
+                child: Text("Play1"),
+                onPressed: () async {
+                  play1();
+                },
+              ),
+              RaisedButton(
+                child: Text("stop"),
+                onPressed: () async {
+                  stop();
+                },
+              ),
+              RaisedButton(
+                child: Text("delNode"),
+                onPressed: () async {
+                  musicNode.dispose();
+                },
+              ),
+              RaisedButton(
+                child: Text("Play2"),
+                onPressed: () async {
+                  testPlay2();
+                },
+              ),
+              RaisedButton(
+                child: Text("offlineTest"),
+                onPressed: () async {
+                  offlineTest();
+                },
+              ),
+              RaisedButton(
+                child: Text("offlineTest2"),
+                onPressed: () async {
+                  offlineTest2();
+                },
+              ),
+              RaisedButton(
+                child: Text("memoryTest"),
+                onPressed: () async {
+                  memoryTest();
+                },
+              ),
+              RaisedButton(
+                child: Text("memoryTest2"),
+                onPressed: () async {
+                  memoryTest2();
+                },
+              ),
+              RaisedButton(
+                child: Text("测试播放器"),
+                onPressed: () async {
+                  Navigator.push(
+                    context,
+                    new MaterialPageRoute(builder: (context) => Player()),
+                  );
+                },
+              ),
+            ],
+          ));
+        }),
       ),
     );
   }

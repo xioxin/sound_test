@@ -58,11 +58,7 @@ SoundTouchNode::SoundTouchNode(double maxTempo)
 
     m_soundTouch = std::make_shared<soundtouch::SoundTouch>();
 
-    setRate(1.5);
-//    setPitch(-6);
-//    setTempo(1.2);
-
-    bufferSize = ceil(128*2*maxTempo);
+    bufferSize = ceil(ProcessingSizeInFrames*2*maxTempo);
     soundTouchBuffer = new float[bufferSize];
 
     initialize();
@@ -137,7 +133,8 @@ void SoundTouchNode::process(ContextRenderLock & r, size_t framesToProcess)
         m_startRequested = false;
     }
 
-    size_t realFrameToProcess = ceil(framesToProcess/m_soundTouch->getInputOutputSampleRatio());
+//    size_t realFrameToProcess = ceil(framesToProcess/m_soundTouch->getInputOutputSampleRatio());
+    size_t realFrameToProcess = ProcessingSizeInFrames;
     size_t quantumFrameOffset;
     size_t bufferFramesToProcess;
 
@@ -498,7 +495,7 @@ void SoundTouchNode::setLoopEnd(double loopEnd)
 void SoundTouchNode::setRate(double value) {
 //    m_soundTouch->setRate(value);
     playbackRate()->setValue(value);
-    m_soundTouch->setPitch(1/value);
+    m_soundTouch->setPitch(1.0/value);
 }
 
 void SoundTouchNode::setPitch(double value) {
@@ -534,7 +531,7 @@ void SoundTouchNode::mixChannel(AudioBus* outputBus,int samples) {
 }
 
 void SoundTouchNode::soundTouchRender(AudioBus *outputBus) {
-    uint nSamples = 128;
+    uint nSamples = ProcessingSizeInFrames;
     int received = 0,got = 0;
 
     memset(soundTouchBuffer,0,bufferSize);
@@ -542,6 +539,8 @@ void SoundTouchNode::soundTouchRender(AudioBus *outputBus) {
         got = m_soundTouch->receiveSamples((soundTouchBuffer+received), nSamples-received);
         received += got;
     } while (got != 0);
+
+//    __android_log_print(ANDROID_LOG_ERROR,"ST","%s%d","Received:",received);
 
     if(outputBus->numberOfChannels() == 2){
         nqr::DeinterleaveStereo(outputBus->channel(0)->mutableData(),outputBus->channel(1)->mutableData(),soundTouchBuffer,received*2);

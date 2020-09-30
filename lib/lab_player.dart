@@ -15,7 +15,7 @@ class LabPlayer {
     _player = v;
     if(_player == null) return;
     if(_playbackRate != 1.0) {
-      v.playbackRate.setValue(_playbackRate);
+      playbackRate = playbackRate;
     }
     _subscriptionPosition = _player.onPosition.listen((event) {
       this._onPositionController.add(event);
@@ -41,6 +41,12 @@ class LabPlayer {
   double crossfadeTime = 0.3;
   bool get playing => status == LabPlayerStatus.playing;
 
+  AudioPlayerNode createBufferSource(AudioBus audio) {
+//    return this.audioContext.createBufferSource(audio);
+    return this.audioContext.createSoundTouch(audio, maxRate: 2.0);
+  }
+
+
   bool get playerPosIsZero => (player?.position ?? Duration(milliseconds: 0)).inMilliseconds == 0;
 
   Duration get position {
@@ -64,7 +70,8 @@ class LabPlayer {
   double _playbackRate = 1.0;
   double get playbackRate => _playbackRate;
   set playbackRate(double val) {
-    player?.playbackRate?.setValue(val);
+    print("playing is SoundTouchNode: ${playing is SoundTouchNode}");
+    player?.rate = val;
     _playbackRate = val;
   }
 
@@ -154,7 +161,7 @@ class LabPlayer {
   playFromBus(AudioBus bus) {
     final oldPlayer = player;
     final oldGainNode = playerGainNode;
-    final newPlayer = this.audioContext.createBufferSource(bus);
+    final newPlayer = createBufferSource(bus);
     final newGainNode = this.audioContext.createGainNode();
     newPlayer.connect(newGainNode);
     newGainNode.connect(this.masterGainNode);
@@ -200,7 +207,7 @@ class LabPlayer {
     if(startPosition != null) {
       posWaitingPlayerSwitch = true;
       final oldPlayer = player;
-      final newPlayer = this.audioContext.createBufferSource(this.player.resource);
+      final newPlayer = createBufferSource(this.player.resource);
       newPlayer.connect(playerGainNode);
       newPlayer.start(when: 0, offset: startPosition.inMilliseconds / 1000);
       player = newPlayer;
@@ -233,7 +240,7 @@ class LabPlayer {
       if(crossfadeTime > 0.1 && playerGainNode != null) {
         final oldPlayer = player;
         final oldGainNode = playerGainNode;
-        final newPlayer = this.audioContext.createBufferSource(this.player.resource);
+        final newPlayer = createBufferSource(this.player.resource);
         final newGainNode = this.audioContext.createGainNode();
         newPlayer.connect(newGainNode);
         newGainNode.connect(this.masterGainNode);

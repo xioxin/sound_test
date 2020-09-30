@@ -301,7 +301,7 @@ void SoundTouch::putSamples(const SAMPLETYPE *samples, uint nSamples)
 #endif
     {
         // evaluate the tempo changer, then transpose the rate up, 
-        assert(output == pRateTransposer);
+//        assert(output == pRateTransposer);
         pTDStretch->putSamples(samples, nSamples);
         pRateTransposer->moveSamples(*pTDStretch);
     }

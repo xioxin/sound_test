@@ -36,11 +36,11 @@ Java_dev_zzksoft_labsound_LabSound_main(JNIEnv *env, jobject thiz,jstring inFile
     pthread_create(&t1,NULL,[](void* arg) -> void* {
         double speed = 1.0;
         double pitch = 0.0;
-        while(speed < 1.5){
-            std::this_thread::sleep_for(std::chrono::milliseconds(400));
-            speed += 0.05;
-            pitch += 0.5;
-//            SoundTouchNode_setTempo(*((int*)arg),speed);
+        while(speed > 0.5){
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            speed -= 0.01;
+            pitch -= 0.1;
+//            SoundTouchNode_setRate(*((int*)arg),speed);
 //            SoundTouchNode_setPitch(*((int*)arg),pitch);
         }
         pthread_exit(NULL);
@@ -124,4 +124,11 @@ JNIEXPORT jint JNICALL
 Java_dev_zzksoft_labsound_LabSound_createSoundTouch(JNIEnv *env, jobject thiz, jlong context,
                                                     jint bus_index) {
     return createSoundTouchNode(reinterpret_cast<AudioContext *>(context),bus_index, 3.0);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_dev_zzksoft_labsound_LabSound_setRate(JNIEnv *env, jobject thiz, jint audio_index,
+                                           jdouble when) {
+    SoundTouchNode_setRate(audio_index,when);
 }

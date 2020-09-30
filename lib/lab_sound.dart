@@ -50,8 +50,8 @@ class AudioContext {
   AudioSampleNode createBufferSource(AudioBus audio) {
     return AudioSampleNode(this, audio);
   }
-  SoundTouchNode createSoundTouch(AudioBus audio) {
-    return SoundTouchNode(this, audio);
+  SoundTouchNode createSoundTouch(AudioBus audio, {double maxRate = 2.0}) {
+    return SoundTouchNode(this, audio, maxRate: maxRate);
   }
 
   RecorderNode createRecorderNode() {
@@ -224,7 +224,7 @@ class AudioSampleNode extends AudioPlayerNode {
   Timer _checkTimer;
   _startCheckTimer(){
     _checkTimer?.cancel();
-    _checkTimer = Timer.periodic( Duration( milliseconds: 20 ), ( timer ) {
+    _checkTimer = Timer.periodic( Duration( milliseconds: 200 ), ( timer ) {
 //      print("this.position ${this.position} - ${this.duration}");
       _onPositionController.add(this.position);
       if(this.hasFinished){
@@ -273,7 +273,7 @@ class AudioSampleNode extends AudioPlayerNode {
 
 class SoundTouchNode extends AudioPlayerNode {
   AudioBus resource;
-  SoundTouchNode(AudioContext ctx, AudioBus audio, {bool disposable = false, double maxRate = 3.0 }) {
+  SoundTouchNode(AudioContext ctx, AudioBus audio, {bool disposable = false, double maxRate = 2.0 }) {
     this.ctx = ctx;
     this.resource = audio;
     this.nodeId = lab.createSoundTouchNode(ctx.pointer, audio.resourceId, maxRate);
@@ -324,7 +324,7 @@ class SoundTouchNode extends AudioPlayerNode {
   Timer _checkTimer;
   _startCheckTimer(){
     _checkTimer?.cancel();
-    _checkTimer = Timer.periodic( Duration( milliseconds: 20 ), ( timer ) {
+    _checkTimer = Timer.periodic( Duration( milliseconds: 200 ), ( timer ) {
 //      print("this.position ${this.position} - ${this.duration}");
       _onPositionController.add(this.position);
       if(this.hasFinished){

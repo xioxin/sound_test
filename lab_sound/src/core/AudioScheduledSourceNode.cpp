@@ -37,8 +37,8 @@ void AudioScheduledSourceNode::updateSchedulingInfo(ContextRenderLock & r, size_
     if (!outputBus)
         return;
 
-    if (quantumFrameSize != AudioNode::ProcessingSizeInFrames)
-        return;
+//    if (quantumFrameSize != AudioNode::ProcessingSizeInFrames)
+//        return;
 
     AudioContext * context = r.context();
 
